@@ -122,8 +122,8 @@ class _DelayCalculatorHomeState extends State<DelayCalculatorHome> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Text("Crew Change", style: TextStyle(fontSize: 18, color: (crewChange ? Colors.blue : Colors.black54))),
-                    Text(crewChange ? "(Yes)" : "(No)", style: TextStyle(fontSize: 18)),
+                    Text("Crew Change", style: TextStyle(fontSize: 18)),
+                    Text(crewChange ? "(Yes)" : "(No)", style: TextStyle(fontSize: 18, color: (crewChange ? Colors.blue : Colors.black54))),
                     Switch(
                       value: crewChange,
                       onChanged: (newVal) => setState(() => crewChange = newVal),
