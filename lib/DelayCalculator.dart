@@ -5,7 +5,42 @@ import 'consts.dart';
 
 class DelayCalculator {
   DateTime scheduledArrival, actualArrival, scheduledDeparture, actualDeparture;
-  Duration delayTime0x, totalDelayTime, delayTime, delayTime09;
+  Duration delayTime0x, totalDelayTime, delayTimeQQ, delayTime09;
+
+  Duration calculateScheduledTurnTime({DateTime scheduledDeparture, DateTime scheduledArrival, Duration standardTurnTime}) {
+    var scheduledTurnTime = scheduledDeparture.difference(scheduledArrival);
+    if (scheduledTurnTime > standardTurnTime) {
+      if (scheduledTurnTime.inMinutes > 90) scheduledTurnTime = Duration(minutes: 90);
+      standardTurnTime = scheduledTurnTime;
+    }
+    return scheduledTurnTime;
+  }
+
+  Duration calculateStandardTurnTime({Aircraft aircraft, bool crewChange}) => AircraftDelayMap[aircraft] + Duration(minutes: (crewChange ? 5 : 0 ));
+
+  Duration calculateActualTurnTime({DateTime actualDeparture, DateTime actualArrival}) => actualDeparture.difference(actualArrival);
+
+  Duration calculateTotalDelayTime({DateTime scheduledDeparture, DateTime actualDeparture}) => actualDeparture.difference(scheduledDeparture);
+
+  Duration calculateDelayTimeQQ({Duration totalDelayTime, Duration delayTime0x}) => totalDelayTime - delayTime0x;
+
+  Duration calculateDelayTime0x({DateTime actualArrival, DateTime scheduledArrival, Duration actualTurnTime, Duration scheduledTurnTime, Duration totalDelayTime}) {
+    var totalDelayTimeMin = totalDelayTime.inMinutes;
+    var arrivalDifferenceMin = actualArrival.difference(scheduledArrival).inMinutes;
+    var departureSequenceMin = min(0, arrivalDifferenceMin);
+    var delayTimeRemainderMin = max(0, (actualTurnTime.inMinutes + departureSequenceMin) - scheduledTurnTime.inMinutes);
+    delayTimeRemainderMin = min(delayTimeRemainderMin, totalDelayTimeMin);
+
+    return scheduledArrival.isAfter(actualArrival) ? Duration() : Duration(minutes: min(arrivalDifferenceMin, totalDelayTimeMin - delayTimeRemainderMin));
+}
+
+  Duration calculateDelayTime09({Duration standardTurnTime, Duration scheduledTurnTime, Duration totalDelayTime, Duration delayTimeQQ}) {
+    var delayTime09min = max(0, (standardTurnTime - scheduledTurnTime).inMinutes);
+    delayTime09min = min(delayTime09min, totalDelayTime.inMinutes);
+    delayTime09min = min(delayTime09min, delayTimeQQ.inMinutes);
+    return Duration(minutes: delayTime09min);
+  }
+
 
   DelayCalculator({this.scheduledArrival, this.actualArrival, this.scheduledDeparture, this.actualDeparture, crewChange = false, aircraft = Aircraft.A320}) {
     if (scheduledDeparture == scheduledArrival) {
@@ -14,34 +49,26 @@ class DelayCalculator {
       throw DelayCalcValidationException("Check ya math einstein (departure is before arrival"); // 09 delay code not acceptable for this flight
     }
 
+    var totalDelayTime = calculateTotalDelayTime(scheduledDeparture: scheduledDeparture, actualDeparture: actualDeparture);
 
-    var actualTurnTime = actualDeparture.difference(actualArrival);
-    var scheduledTurnTime = scheduledDeparture.difference(scheduledArrival);
+    var actualTurnTime = calculateActualTurnTime(actualArrival: actualArrival, actualDeparture: actualDeparture);
+    var standardTurnTime = calculateStandardTurnTime(aircraft: aircraft, crewChange: crewChange);
+    var scheduledTurnTime = calculateScheduledTurnTime(scheduledDeparture: scheduledDeparture, scheduledArrival: scheduledArrival, standardTurnTime: standardTurnTime);
 
-    totalDelayTime = actualDeparture.difference(scheduledDeparture);
-    var standardTurnTime = AircraftDelayMap[aircraft] + Duration(minutes: (crewChange ? 5 : 0 ));
-    if (scheduledTurnTime > standardTurnTime) {
-      if (scheduledTurnTime.inMinutes > 90) scheduledTurnTime = Duration(minutes: 90);
-      standardTurnTime = scheduledTurnTime;
-    }
+    var delayTime0x = calculateDelayTime0x(
+        actualArrival: actualArrival,
+        scheduledArrival: scheduledArrival,
+        actualTurnTime: actualTurnTime,
+        scheduledTurnTime: scheduledTurnTime,
+        totalDelayTime: totalDelayTime);
+    var delayTimeQQ = calculateDelayTimeQQ(totalDelayTime: totalDelayTime, delayTime0x: delayTime0x);
+    var delayTime09 = calculateDelayTime09(standardTurnTime: standardTurnTime, scheduledTurnTime: scheduledTurnTime, totalDelayTime: totalDelayTime, delayTimeQQ: delayTimeQQ);
 
-//    [??]
-    var departureSequence = Duration(minutes: min(0, actualArrival.difference(scheduledArrival).inMinutes));
-    var delayTimeRemainder = Duration(minutes: max(0, ((actualTurnTime + departureSequence) - scheduledTurnTime).inMinutes));
-    delayTimeRemainder = Duration(minutes: min(delayTimeRemainder.inMinutes, totalDelayTime.inMinutes));
 
-//    [0X]
-    delayTime0x = scheduledArrival.isAfter(actualArrival) ? 0 : Duration(minutes: min((actualArrival.difference(scheduledArrival)).inMinutes, (totalDelayTime - delayTimeRemainder).inMinutes));
-
-//    [??]
-    delayTimeRemainder = totalDelayTime - delayTime0x;
-
-//    [09]
-    delayTime09 = Duration(minutes: max(0, (standardTurnTime - scheduledTurnTime).inMinutes));
-    delayTime09 = Duration(minutes: min(delayTime09.inMinutes, totalDelayTime.inMinutes));
-    delayTime09 = Duration(minutes: min(delayTime09.inMinutes, delayTimeRemainder.inMinutes));
-
-    delayTime = delayTimeRemainder;
+    this.delayTimeQQ = delayTimeQQ;
+    this.delayTime09 = delayTime09;
+    this.delayTime0x = delayTime0x;
+    this.totalDelayTime = totalDelayTime;
   }
 
 }

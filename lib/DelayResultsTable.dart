@@ -19,7 +19,7 @@ class DelayResultsTable extends StatelessWidget {
     border: TableBorder.all(color: Colors.black45),
     children: [
       resultTableRow("[0X] Delay Time", delayCalc.delayTime0x.toHoursMinutesString()),
-      resultTableRow("[??] Delay Time", delayCalc.delayTime.toHoursMinutesString()),
+      resultTableRow("[??] Delay Time", delayCalc.delayTimeQQ.toHoursMinutesString()),
       resultTableRow("Total Delay Time", delayCalc.totalDelayTime.toHoursMinutesString()),
       resultTableRow("[09] Delay Time", delayCalc.delayTime09.toHoursMinutesString()),
     ],
